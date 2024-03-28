@@ -1,0 +1,316 @@
+import mysql.connector
+from mysql.connector import Error
+
+class Product:
+    def _init_(self, name, quantity, price):
+        self.name = name
+        self.quantity = quantity
+        self.price = price
+
+    def get_name(self):
+        return self.name
+
+    def get_quantity(self):
+        return self.quantity
+
+    def get_price(self):
+        return self.price
+
+    # Method to update quantity
+    def update_quantity(self, new_quantity):
+        self.quantity = new_quantity
+
+def view_products(conn):
+    try:
+        cursor = conn.cursor()
+        cursor.execute("SELECT name, availaiblity_status, Price FROM product")
+        products = cursor.fetchall()
+        for product in products:
+            name, quantity, price = product
+            print("Product: {}, Quantity: {}, Price: ${}".format(name, quantity, price))
+    except Error as e:
+        print("Error fetching products:", e)
+    
+"""--------------------------------------------------------------------------------------------------"""
+def view_all_special_offers(cursor):
+    try:
+        # Execute SQL query to fetch all special offers
+        cursor.execute("SELECT * FROM Special_Offers")
+
+        # Fetch all rows
+        special_offers = cursor.fetchall()
+
+        # Check if there are any offers
+        if special_offers:
+            # Print header
+            print("All Special Offers:")
+            print("{:<10} {:<15} {:<20} {:<20} {:<25}".format(
+                "Offer ID", "Offer Code", "Max Discount", "Percentage Discount", "Min Order Value"))
+            
+            # Print each special offer
+            for offer in special_offers:
+                offer_id, offer_code, max_discount, percentage_discount, min_order_value, _ = offer
+                print("{:<10} {:<15} {:<20} {:<20} {:<25}".format(
+                    offer_id, offer_code, f"${max_discount:.2f}", f"{percentage_discount}%", f"${min_order_value:.2f}"))
+        else:
+            print("No special offers available.")
+    except mysql.connector.Error as error:
+        print("Error:", error)
+
+def apply_special_offer(cursor, customer_id, cart_id):
+    try:
+        view_all_special_offers(cursor)
+        # Ask user to enter the offer code
+        offer_code = input("Enter the offer code you want to apply: ")
+
+        # Execute SQL query to fetch the special offer details based on the offer code
+        cursor.execute("SELECT * FROM Special_Offers WHERE offer_code = %s", (offer_code,))
+        special_offer = cursor.fetchone()
+
+        if special_offer:
+            offer_id, offer_code, max_discount, percentage_discount, min_order_value, _ = special_offer
+            percentage_discount = float(percentage_discount)
+            # Fetch the total amount of the current cart
+            cursor.execute("SELECT total_value FROM Cart WHERE customer_id = %s AND cart_id = %s", (customer_id, cart_id))
+            total_amount = cursor.fetchone()[0]
+
+            if total_amount >= min_order_value:
+                # Apply the offer on the cart
+                if percentage_discount > 0:
+                    # Apply percentage discount
+                    discount_amount = total_amount * percentage_discount / 100
+                    if discount_amount > max_discount:
+                        discount_amount = max_discount
+                else:
+                    # Apply maximum discount directly
+                    discount_amount = max_discount
+                fin_a=total_amount-discount_amount
+                # Update the cart with the discount amount
+                cursor.execute("UPDATE Cart SET final_amount = %s WHERE customer_id = %s AND cart_id = %s", (fin_a, customer_id, cart_id))
+                print("Offer applied successfully.")
+            else:
+                print("Minimum order value not reached. Offer cannot be applied.")
+        else:
+            print("Invalid offer code.")
+
+    except mysql.connector.Error as error:
+        print("Error:", error)
+
+"""--------------------------------------------------------------------------------------------------"""
+def view_deals(conn, cursor):
+    # Prepare and execute SQL statement to view deals with item names
+    sql = "SELECT d.DealCode, d.Discount, d.Descriptions, i.itemName " \
+          "FROM Deals d " \
+          "JOIN ItemsDeals id ON d.DealCode = id.DealCode " \
+          "JOIN Items i ON id.ProductID = i.ProductID"
+    cursor.execute(sql)
+
+    # Process the results
+    print("DEALS :")
+    print("--------------------------------------------------------------------------------------------")
+    for (dealCode, discount, description, itemName) in cursor:
+        print("ITEM : {}, DEAL CODE : {}, DISCOUNT : {}%, DESCRIPTION : {}".format(itemName, dealCode, discount, description))
+        print("------------------------------------------------------------------------------------------------------------------------")
+
+def add_item_to_cart(conn, cursor):
+    # Implementation to add items to cart
+    # Store items in the cart
+    cart_items = []
+    total_amount = 0
+
+    while True:
+        print("\nOptions:")
+        print("------------------------")
+        print("1. PRESS 1 FOR ADDING ITEMS")
+        print("------------------------")
+        print("2. PRESS 2 FOR REMOVING ITEMS")
+        print("------------------------")
+        print("3. PRESS 3 FOR DISPLAYING CART")
+        print("------------------------")
+        print("4. PRESS 4 FOR PLACING ORDER")
+        print("------------------------")
+        option = int(input("Enter your choice: "))
+        print("------------------------")  # Consume newline character
+
+        if option == 1:
+            add_item(conn, cursor, cart_items)
+        elif option == 2:
+            remove_item(cursor, cart_items)
+        elif option == 3:
+            display_cart(cart_items)
+        elif option == 4:
+            place_order(cart_items)
+            return  # Exit the method after placing the order
+        else:
+            print("Invalid choice.")
+
+def add_item(conn, cursor, cart_items):
+    item_name = input("Enter item name: ").strip()
+    print("------------------------")
+    quantity = int(input("Enter quantity: "))
+    print("------------------------")
+
+    # Retrieve item details from the database
+    search_sql = "SELECT QUANTITY, itemPrice FROM Items WHERE LOWER(itemName) LIKE LOWER(%s)"
+    cursor.execute(search_sql, ("%" + item_name + "%",))
+    result = cursor.fetchone()
+    
+    if result:
+        available_quantity, item_price = result
+        if quantity <= available_quantity:
+            cart_items.append(Item(item_name, quantity, item_price))
+            total_amount = calculate_total_amount(cart_items)
+            print("\nItem added to cart. Total Amount: ${}".format(total_amount))
+        else:
+            print("Insufficient quantity available.")
+    else:
+        print("Item not found.")
+
+def display_cart(cart_items):
+    if not cart_items:
+        print("Cart is empty.")
+        return
+
+    print("\nItems in the cart:")
+    for item in cart_items:
+        print("Item: {}, Quantity: {}, Total Amount: ${}".format(item.get_name(), item.get_quantity(), item.get_price() * item.get_quantity()))
+    print("Total Cart Amount: ${}".format(calculate_total_amount(cart_items)))
+
+def calculate_total_amount(cart_items):
+    total_amount = sum(item.get_price() * item.get_quantity() for item in cart_items)
+    return total_amount
+
+def remove_item(cursor, cart_items):
+    if not cart_items:
+        print("Cart is empty.")
+        return
+
+    print("Items in the cart:")
+    for i, item in enumerate(cart_items, 1):
+        print("{}. {} - Quantity: {}".format(i, item.get_name(), item.get_quantity()))
+
+    item_name = input("Enter the name of the item to remove: ")
+    print("--------------------------------------")
+    quantity_to_remove = int(input("Enter the quantity to remove: "))
+    print("--------------------------------------")
+
+    for item in cart_items:
+        if item.get_name().lower() == item_name.lower():
+            if item.get_quantity() > quantity_to_remove:
+                item.update_quantity(item.get_quantity() - quantity_to_remove)
+                total_amount = calculate_total_amount(cart_items)
+                print("Item removed from cart. Total Amount: ${}".format(total_amount))
+            elif item.get_quantity() == quantity_to_remove:
+                cart_items.remove(item)
+                total_amount = calculate_total_amount(cart_items)
+                print("Item removed from cart. Total Amount: ${}".format(total_amount))
+            else:
+                print("Invalid quantity to remove.")
+            break
+    else:
+        print("Item {} not found in the cart.".format(item_name))
+
+def place_order(cart_items):
+    # Calculate total amount
+    total_amount = calculate_total_amount(cart_items)
+
+    # Place order and perform necessary actions
+    print("Order placed successfully.")
+    print("\n------------------ THANK YOU FOR ORDERING ------------------")
+    # Additional actions to finalize the order
+
+
+def connect_to_database():
+    try:
+        conn = mysql.connector.connect(
+            host='localhost',
+            database='sasta_amazon', # Change to your database name
+            user='root',
+            password='tumhara_password'
+        )
+        if conn.is_connected():
+            print("Connected to MySQL database")
+            return conn
+    except Error as e:
+        print("Error connecting to MySQL database:", e)
+def customer_login(conn):
+    username = input("Enter your username: ")
+    password = input("Enter your password: ")
+
+    cursor = conn.cursor()
+
+    # Query to fetch customer details based on username
+    query = "SELECT customer_id, password FROM Customer WHERE login_id = %s"
+    cursor.execute(query, (username,))
+    customer = cursor.fetchone()
+
+
+    if customer:
+        print(customer[1])
+        # Check if the provided password matches the password in the database
+        if password == customer[1]:
+            print("Login successful as customer!")
+            customer_id = customer[0]
+            # Perform further operations as needed
+            return customer_id
+        else:
+            print("Incorrect password")
+    else:
+        print("Customer with that username not found")
+
+    cursor.close()
+
+def main():
+    conn = connect_to_database()
+    if conn:
+        try:
+            cursor = conn.cursor()  # Create cursor object
+            
+            while True:
+                print("\nSelect an option:")
+                print("1. Login as Customer")
+                print("2. Login as Admin")
+                print("3. Login as Seller")
+                print("4. Exit")
+                choice = input("Enter your choice: ")
+
+                if choice == '1':
+                    customer_id = customer_login(conn)
+                    if customer_id:
+                        #q = "SELECT * FROM Customer WHERE customer_id = %s"
+                        #cursor.execute(q, (customer_id,))
+                        while True:
+                            print("\nSelect an option:")
+                            print("1. View Products")
+                            print("2. View Special Offers")
+                            print("3. Exit")
+                            inner_choice = input("Enter your choice: ")
+                            if inner_choice == '1':
+                                view_products(conn)
+                            elif inner_choice == '2':
+                                q="select cart_id from Cart where customer_id= %s"
+                                cursor.execute(q,(customer_id,))
+                                cart_id=cursor.fetchone()
+                                apply_special_offer(cursor, customer_id, cart_id[0])  # Pass customer_id and cart_id
+                            elif inner_choice == '3':
+                                print("Exiting...")
+                                break
+                            else:
+                                print("Invalid choice. Please try again.")
+                elif choice == '2':
+                    # Implement admin login and functionality
+                    pass
+                elif choice == '3':
+                    # Implement seller login and functionality
+                    pass
+                elif choice == '4':
+                    print("Exiting...")
+                    break
+                else:
+                    print("Invalid choice. Please try again.")
+        finally:
+            conn.close()
+            print("MySQL connection closed")
+
+if __name__ == "__main__":
+    main()
