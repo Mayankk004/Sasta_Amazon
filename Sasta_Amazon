@@ -1,14 +1,14 @@
 import mysql.connector
 from mysql.connector import Error
-def add_delivery_boy(first_name, last_name, mobile_number, email_id, rating, salary, ofc_id, admin_id, order_id):
+def add_delivery_boy(first_name, last_name, mobile_number, email_id, rating, salary, ofc_id, admin_id,orders_delivered):
     conn = connect_to_database()
     cursor = conn.cursor()
     
     # Insert delivery boy data into Delivery_Boy table
     cursor.execute("""
-        INSERT INTO Delivery_Boy (first_name, last_name, mobile_number, email_id, rating, salary, ofc_id, admin_id, order_id)
+        INSERT INTO Delivery_Boy (first_name, last_name, mobile_number, email_id, rating, salary, ofc_id, admin_id, orders_delivered)
         VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
-    """, (first_name, last_name, mobile_number, email_id, rating, salary, ofc_id, admin_id, order_id))
+    """, (first_name, last_name, mobile_number, email_id, rating, salary, ofc_id, admin_id, orders_delivered))
     
     conn.commit()
     conn.close()
@@ -419,7 +419,7 @@ def seller_login(conn):
         return -1
 
 # Admin functionalities
-def admin_menu():
+def admin_menu(admin_id):
     print("Welcome, Admin!")
     print("1. Add delivery boy")
     print("2. Add worker")
@@ -438,9 +438,7 @@ def admin_menu():
         rating = float(input("Enter rating of delivery boy: "))
         salary = float(input("Enter salary of delivery boy: "))
         ofc_id = int(input("Enter office ID of delivery boy: "))
-        admin_id = int(input("Enter admin ID of delivery boy: "))
-        order_id = int(input("Enter order ID of delivery boy: "))
-        add_delivery_boy(first_name, last_name, mobile_number, email_id, rating, salary, ofc_id, admin_id, order_id)
+        add_delivery_boy(first_name, last_name, mobile_number, email_id, rating, salary, ofc_id, admin_id,0)
     elif choice == '2':
         # Collect worker details
         salary = float(input("Enter salary of worker: "))
@@ -448,7 +446,6 @@ def admin_menu():
         mobile = input("Enter mobile of worker: ")
         first_name = input("Enter first name of worker: ")
         last_name = input("Enter last name of worker: ")
-        admin_id = int(input("Enter admin ID of worker: "))
         add_worker(salary, email, mobile, first_name, last_name, admin_id)
     elif choice == '3':
         # Collect special offer details
@@ -456,7 +453,6 @@ def admin_menu():
         maximum_discount = float(input("Enter maximum discount: "))
         percentage_discount = float(input("Enter percentage discount: "))
         minimum_order_value = float(input("Enter minimum order value: "))
-        admin_id = int(input("Enter admin ID for special offer: "))
         add_special_offer(offer_code, maximum_discount, percentage_discount, minimum_order_value, admin_id)
     elif choice == '4':
         offer_id = int(input("Enter the ID of the special offer to remove: "))
@@ -468,7 +464,6 @@ def admin_menu():
         phone_number = input("Enter phone number of seller: ")
         first_name = input("Enter first name of seller: ")
         last_name = input("Enter last name of seller: ")
-        admin_id = int(input("Enter admin ID of seller: "))
         add_seller(password, email, phone_number, first_name, last_name, admin_id)
     elif choice == '6':
         seller_id = int(input("Enter the ID of the seller to remove: "))
@@ -477,6 +472,36 @@ def admin_menu():
         view_all_orders()
     else:
         print("Invalid choice")
+change_product_cost(seller_id,)
+
+def discontinue_product(seller_id,admin_id){
+
+}
+
+def seller_menu(seller_id):
+    print("Welcome, Seller!")
+    print("1. Sell products")
+    print("2. Change product cost")
+    print("3. Discontinue selling a product")
+    print("4. Exit")
+
+    choice = input("Enter your choice: ")
+    if choice == '1':
+        pass
+    elif choice == '2':
+        # Change product cost
+        product_id = int(input("Enter the ID of the product to update: "))
+        new_price = float(input("Enter the new price of the product: "))
+        change_product_cost(seller_id,product_id, new_price)
+    elif choice == '3':
+        # Discontinue selling a product
+        product_id = int(input("Enter the ID of the product to discontinue: "))
+        discontinue_product(seller_id,product_id)
+    elif choice == '4':
+        print("Exiting...")
+    else:
+        print("Invalid choice")
+
 
 def main():
     conn = connect_to_database()
@@ -524,7 +549,7 @@ def main():
                     if(admin_id == -1){
                         pass
                     }
-                    admin_menu()
+                    admin_menu(admin_id)
                 elif choice == '4':
                     print("Exiting...")
                     break
