@@ -1,5 +1,110 @@
 import mysql.connector
 from mysql.connector import Error
+def add_delivery_boy(first_name, last_name, mobile_number, email_id, rating, salary, ofc_id, admin_id, order_id):
+    conn = connect_to_database()
+    cursor = conn.cursor()
+    
+    # Insert delivery boy data into Delivery_Boy table
+    cursor.execute("""
+        INSERT INTO Delivery_Boy (first_name, last_name, mobile_number, email_id, rating, salary, ofc_id, admin_id, order_id)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+    """, (first_name, last_name, mobile_number, email_id, rating, salary, ofc_id, admin_id, order_id))
+    
+    conn.commit()
+    conn.close()
+    print("Delivery boy added successfully.")
+
+# Function to add a worker
+def add_worker(salary, email, mobile, first_name, last_name, admin_id):
+    conn = connect_to_database()
+    cursor = conn.cursor()
+    
+    # Insert worker data into Worker table
+    cursor.execute("""
+        INSERT INTO Worker (salary, email, mobile, first_name, last_name, admin_id)
+        VALUES (%s, %s, %s, %s, %s, %s)
+    """, (salary, email, mobile, first_name, last_name, admin_id))
+    
+    conn.commit()
+    conn.close()
+    print("Worker added successfully.")
+
+# Function to add a special offer
+def add_special_offer(offer_code, maximum_discount, percentage_discount, minimum_order_value, admin_id):
+    conn = connect_to_database()
+    cursor = conn.cursor()
+    
+    # Insert special offer data into Special_Offers table
+    cursor.execute("""
+        INSERT INTO Special_Offers (offer_code, maximum_discount, percentage_discount, minimum_order_value, admin_id)
+        VALUES (%s, %s, %s, %s, %s)
+    """, (offer_code, maximum_discount, percentage_discount, minimum_order_value, admin_id))
+    
+    conn.commit()
+    conn.close()
+    print("Special offer added successfully.")
+
+# Function to remove a special offer
+def remove_special_offer(offer_id):
+    conn = connect_to_database()
+    cursor = conn.cursor()
+    
+    # Delete special offer from Special_Offers table
+    cursor.execute("""
+        DELETE FROM Special_Offers
+        WHERE offer_id = %s
+    """, (offer_id,))
+    
+    conn.commit()
+    conn.close()
+    print("Special offer removed successfully.")
+
+# Function to add a seller
+def add_seller(password, email, phone_number, first_name, last_name, admin_id):
+    conn = connect_to_database()
+    cursor = conn.cursor()
+    
+    # Insert seller data into Seller table
+    cursor.execute("""
+        INSERT INTO Seller (password, email, phone_number, first_name, last_name, admin_id)
+        VALUES (%s, %s, %s, %s, %s, %s)
+    """, (password, email, phone_number, first_name, last_name, admin_id))
+    
+    conn.commit()
+    conn.close()
+    print("Seller added successfully.")
+
+# Function to remove a seller
+def remove_seller(seller_id):
+    conn = connect_to_database()
+    cursor = conn.cursor()
+    
+    # Delete seller from Seller table
+    cursor.execute("""
+        DELETE FROM Seller
+        WHERE seller_id = %s
+    """, (seller_id,))
+    
+    conn.commit()
+    conn.close()
+    print("Seller removed successfully.")
+
+# Function to view all orders
+def view_all_orders():
+    conn = connect_to_database()
+    cursor = conn.cursor()
+    
+    # Retrieve all orders from Order_ table
+    cursor.execute("""
+        SELECT *
+        FROM Order_
+    """)
+    
+    orders = cursor.fetchall()
+    
+    # Print or display orders
+    for order in orders:
+        print(order)
 
 class Product:
     def _init_(self, name, quantity, price):
@@ -260,6 +365,93 @@ def customer_login(conn):
 
     cursor.close()
 
+def admin_login(conn):
+    username = input("Enter your username: ")
+    password = input("Enter your password: ")
+
+    # Connect to your MySQL database
+    conn = mysql.connector.connect(
+        host="localhost",
+        user="yourusername",
+        password="yourpassword",
+        database="sasta_amazon"
+    )
+    cursor = conn.cursor()
+
+    query = "SELECT admin_id, password FROM Admin_ WHERE email_id = %s"
+    cursor.execute(query, (username,))
+    admin = cursor.fetchone()
+
+    if admin:
+        # Check if the provided password matches the password in the database
+        if password == admin[1]:
+            print("Login successful as admin!")
+            admin_id = admin[0]
+            return admin_id
+        else:
+            print("Incorrect password")
+            return -1
+    else:
+        print("Admin with that email not found")
+        return -1
+
+def seller_login(conn):
+    username = input("Enter your username: ")
+    password = input("Enter your password: ")
+
+    cursor = conn.cursor()
+
+    query = "SELECT seller_id, password FROM Seller WHERE email = %s"
+    cursor.execute(query, (username,))
+    seller = cursor.fetchone()
+
+    if seller:
+        # Check if the provided password matches the password in the database
+        if password == seller[1]:
+            print("Login successful as seller!")
+            seller_id = seller[0]
+            return seller_id
+        else:
+            print("Incorrect password")
+            return -1
+    else:
+        print("Seller with that email not found")
+        return -1
+
+# Admin functionalities
+def admin_menu():
+    print("Welcome, Admin!")
+    print("1. Add delivery boy")
+    print("2. Add worker")
+    print("3. Add special offer")
+    print("4. Remove special offer")
+    print("5. Add seller")
+    print("6. Remove seller")
+    print("7. View all orders")
+    choice = input("Enter your choice: ")
+    if choice == '1':
+        # Collect delivery boy details
+        add_delivery_boy(**delivery_boy_details)
+    elif choice == '2':
+        # Collect worker details
+        add_worker(**worker_details)
+    elif choice == '3':
+        # Collect special offer details
+        add_special_offer(**special_offer_details)
+    elif choice == '4':
+        offer_id = input("Enter the ID of the special offer to remove: ")
+        remove_special_offer(offer_id)
+    elif choice == '5':
+        # Collect seller details
+        add_seller(**seller_details)
+    elif choice == '6':
+        seller_id = input("Enter the ID of the seller to remove: ")
+        remove_seller(seller_id)
+    elif choice == '7':
+        view_all_orders()
+    else:
+        print("Invalid choice")
+
 def main():
     conn = connect_to_database()
     if conn:
@@ -277,8 +469,6 @@ def main():
                 if choice == '1':
                     customer_id = customer_login(conn)
                     if customer_id:
-                        #q = "SELECT * FROM Customer WHERE customer_id = %s"
-                        #cursor.execute(q, (customer_id,))
                         while True:
                             print("\nSelect an option:")
                             print("1. View Products")
@@ -290,7 +480,7 @@ def main():
                             elif inner_choice == '2':
                                 q="select cart_id from Cart where customer_id= %s"
                                 cursor.execute(q,(customer_id,))
-                                cart_id=cursor.fetchone()
+                                cart_id = cursor.fetchone()
                                 apply_special_offer(cursor, customer_id, cart_id[0])  # Pass customer_id and cart_id
                             elif inner_choice == '3':
                                 print("Exiting...")
@@ -298,11 +488,17 @@ def main():
                             else:
                                 print("Invalid choice. Please try again.")
                 elif choice == '2':
-                    # Implement admin login and functionality
-                    pass
+                    seller_id = seller_login(conn)
+                    if(admin_id == -1){
+                        pass
+                    }
+                    seller_menu()
                 elif choice == '3':
-                    # Implement seller login and functionality
-                    pass
+                    admin_id = admin_login(conn)
+                    if(admin_id == -1){
+                        pass
+                    }
+                    admin_menu()
                 elif choice == '4':
                     print("Exiting...")
                     break
