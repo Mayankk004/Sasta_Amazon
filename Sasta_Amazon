@@ -431,21 +431,47 @@ def admin_menu():
     choice = input("Enter your choice: ")
     if choice == '1':
         # Collect delivery boy details
-        add_delivery_boy(**delivery_boy_details)
+        first_name = input("Enter first name of delivery boy: ")
+        last_name = input("Enter last name of delivery boy: ")
+        mobile_number = input("Enter mobile number of delivery boy: ")
+        email_id = input("Enter email id of delivery boy: ")
+        rating = float(input("Enter rating of delivery boy: "))
+        salary = float(input("Enter salary of delivery boy: "))
+        ofc_id = int(input("Enter office ID of delivery boy: "))
+        admin_id = int(input("Enter admin ID of delivery boy: "))
+        order_id = int(input("Enter order ID of delivery boy: "))
+        add_delivery_boy(first_name, last_name, mobile_number, email_id, rating, salary, ofc_id, admin_id, order_id)
     elif choice == '2':
         # Collect worker details
-        add_worker(**worker_details)
+        salary = float(input("Enter salary of worker: "))
+        email = input("Enter email of worker: ")
+        mobile = input("Enter mobile of worker: ")
+        first_name = input("Enter first name of worker: ")
+        last_name = input("Enter last name of worker: ")
+        admin_id = int(input("Enter admin ID of worker: "))
+        add_worker(salary, email, mobile, first_name, last_name, admin_id)
     elif choice == '3':
         # Collect special offer details
-        add_special_offer(**special_offer_details)
+        offer_code = input("Enter offer code: ")
+        maximum_discount = float(input("Enter maximum discount: "))
+        percentage_discount = float(input("Enter percentage discount: "))
+        minimum_order_value = float(input("Enter minimum order value: "))
+        admin_id = int(input("Enter admin ID for special offer: "))
+        add_special_offer(offer_code, maximum_discount, percentage_discount, minimum_order_value, admin_id)
     elif choice == '4':
-        offer_id = input("Enter the ID of the special offer to remove: ")
+        offer_id = int(input("Enter the ID of the special offer to remove: "))
         remove_special_offer(offer_id)
     elif choice == '5':
         # Collect seller details
-        add_seller(**seller_details)
+        password = input("Enter password for seller: ")
+        email = input("Enter email of seller: ")
+        phone_number = input("Enter phone number of seller: ")
+        first_name = input("Enter first name of seller: ")
+        last_name = input("Enter last name of seller: ")
+        admin_id = int(input("Enter admin ID of seller: "))
+        add_seller(password, email, phone_number, first_name, last_name, admin_id)
     elif choice == '6':
-        seller_id = input("Enter the ID of the seller to remove: ")
+        seller_id = int(input("Enter the ID of the seller to remove: "))
         remove_seller(seller_id)
     elif choice == '7':
         view_all_orders()
