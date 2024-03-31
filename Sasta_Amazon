@@ -503,7 +503,7 @@ def checkout(conn, cart_id, address,payment_mode ):
         # Fetch product_ids from Contains_Products table for the given cart_id
         cursor.execute("SELECT product_id FROM Contains_Products WHERE cart_id = %s", (cart_id,))
         product_ids = cursor.fetchall()
-        print(product_ids)
+        
         pids=()
         if not product_ids:
             print("No products found in the cart.")
@@ -533,7 +533,7 @@ def checkout(conn, cart_id, address,payment_mode ):
             if x==len(pids):
                 fin_ofcs.append(y)
                 y+=1
-        if len(ofc_count)==0:
+        if len(fin_ofcs)==0:
             print('Products are not available in any Order Fulfillment Centre')
             return
         ofc_selected=random.choice(fin_ofcs)
