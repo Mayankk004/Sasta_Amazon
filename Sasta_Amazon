@@ -136,6 +136,7 @@ def view_order_status(conn, customer_id):
 
 
 
+
 def view_cart(cursor,cart_id):
                             cursor.execute("""
                                 SELECT cp.cart_id, cp.product_id, p.name, p.brand, p.price
@@ -155,8 +156,13 @@ def view_cart(cursor,cart_id):
                                 cursor.execute("UPDATE Cart SET total_value = (SELECT SUM(p.price) FROM Contains_Products cp JOIN Product p ON cp.product_id = p.product_id WHERE cp.cart_id = Cart.cart_id) WHERE cart_id = %s;", (cart_id,))                                
                                 cursor.execute("Select total_value, final_amount from Cart where cart_id=%s",(cart_id,))
                                 results=cursor.fetchone()
-                                print("Total value of cart before applying coupon is: ",results[0])
-                                print("Total value of cart after applying coupon is: ",results[1])
+                                if results[0]<results[1]:
+                                    cursor.execute("UPDate cart set final_amount=%s where cart_id=%s",(results[0],cart_id))
+                                    print("Total value of cart before applying coupon is: ",results[0])
+                                    print("Total value of cart after applying coupon is: ",results[0])
+                                else:
+                                    print("Total value of cart before applying coupon is: ",results[0])
+                                    print("Total value of cart after applying coupon is: ",results[1])                                    
                             else:
                                 print("No products found in the cart.")                            
 
@@ -390,12 +396,9 @@ def view_all_special_offers(cursor):
     except mysql.connector.Error as error:
         print("Error:", error)
 
-def apply_special_offer(cursor, customer_id, cart_id):
+def apply_special_offer(conn, customer_id, cart_id,offer_code):
     try:
-        view_all_special_offers(cursor)
-        # Ask user to enter the offer code
-        offer_code = input("Enter the offer code you want to apply: ")
-
+        cursor=conn.cursor()
         # Execute SQL query to fetch the special offer details based on the offer code
         cursor.execute("SELECT * FROM Special_Offers WHERE offer_code = %s", (offer_code,))
         special_offer = cursor.fetchone()
