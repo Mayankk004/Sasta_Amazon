@@ -435,6 +435,27 @@ def view_deals(conn, cursor):
         print("ITEM : {}, DEAL CODE : {}, DISCOUNT : {}%, DESCRIPTION : {}".format(itemName, dealCode, discount, description))
         print("------------------------------------------------------------------------------------------------------------------------")
 
+
+class Item:
+    def __init__(self, name, quantity, price):
+        self.name = name
+        self.quantity = quantity
+        self.price = price
+    
+    def get_name(self):
+        return self.name
+    
+    def get_quantity(self):
+        return self.quantity
+    
+    def get_price(self):
+        return self.price
+    
+    def update_quantity(self, new_quantity):
+        self.quantity = new_quantity
+
+
+
 def add_item_to_cart(conn, cursor):
     # Implementation to add items to cart
     # Store items in the cart
@@ -639,6 +660,52 @@ def seller_login(conn):
     else:
         print("Seller with that email not found")
         return -1
+    
+
+def change_product_cost(seller_id, product_id, new_price):
+    conn = connect_to_database()
+    cursor = conn.cursor()
+
+    try:
+        # Check if the product belongs to the seller
+        cursor.execute("SELECT seller_id FROM Products WHERE product_id = %s", (product_id,))
+        result = cursor.fetchone()
+
+        if result and result[0] == seller_id:
+            # Update the price of the product
+            cursor.execute("UPDATE Products SET price = %s WHERE product_id = %s", (new_price, product_id))
+            conn.commit()
+            print("Product price updated successfully.")
+        else:
+            print("Product does not belong to the seller.")
+    except Error as e:
+        print("Error updating product price:", e)
+    finally:
+        cursor.close()
+        conn.close()
+
+def discontinue_product(seller_id, product_id):
+    conn = connect_to_database()
+    cursor = conn.cursor()
+
+    try:
+        # Check if the product belongs to the seller
+        cursor.execute("SELECT seller_id FROM Products WHERE product_id = %s", (product_id,))
+        result = cursor.fetchone()
+
+        if result and result[0] == seller_id:
+            # Delete the product from the database
+            cursor.execute("DELETE FROM Products WHERE product_id = %s", (product_id,))
+            conn.commit()
+            print("Product discontinued successfully.")
+        else:
+            print("Product does not belong to the seller.")
+    except Error as e:
+        print("Error discontinuing product:", e)
+    finally:
+        cursor.close()
+        conn.close()
+
 
 # Admin functionalities
 def admin_menu(admin_id):
