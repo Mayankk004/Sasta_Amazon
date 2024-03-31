@@ -1,5 +1,8 @@
 import mysql.connector
 from mysql.connector import Error
+import random
+import datetime
+
 
 
 def add_product_to_cart(conn, cart_id, pname):
@@ -66,8 +69,7 @@ def add_product_to_cart(conn, cart_id, pname):
     except Error as e:
         conn.rollback()
         print("Error adding product to cart:", e)
-    finally:
-        cursor.close()
+
 
 def print_all_categories(cursor):
     try:
@@ -106,28 +108,32 @@ def print_products_by_category(cursor, category_name):
         print("Error fetching products:", e)
 
 
-def view_order_status(conn, order_id):
+def view_order_status(conn, customer_id):
     try:
         cursor = conn.cursor()
+        cursor.execute("SELECT O.order_id FROM Order_ O JOIN Cart C ON O.cart_id = C.cart_id WHERE C.customer_id = %s",(customer_id,))
+        data=cursor.fetchall()
+        
+        for i in data:
+            # Execute SQL query to fetch order details
+            cursor.execute("SELECT order_id, order_time, quantity, shipping_address, order_date,amount FROM Order_ WHERE order_id = %s", (i[0],))
+            order_details = cursor.fetchone()
 
-        # Execute SQL query to fetch order details
-        cursor.execute("SELECT order_id, order_time, quantity, shipping_address, order_date FROM Order_ WHERE order_id = %s", (order_id,))
-        order_details = cursor.fetchone()
-
-        if order_details:
-            order_id, order_time, quantity, shipping_address, order_date = order_details
-            print("Order ID: {}".format(order_id))
-            print("Order Time: {}".format(order_time))
-            print("Quantity: {}".format(quantity))
-            print("Shipping Address: {}".format(shipping_address))
-            print("Order Date: {}".format(order_date))
-        else:
-            print("Order with ID {} not found.".format(order_id))
+            if order_details:
+                order_id, order_time, quantity, shipping_address, order_date,amount = order_details
+                print("Order ID: {}".format(order_id))
+                print("Order Time: {}".format(order_time))
+                print("Quantity: {}".format(quantity))
+                print("Shipping Address: {}".format(shipping_address))
+                print("Order Date: {}".format(order_date))
+                print("Amount: {}".format(amount))
+                print("-----------------------------------------------------")
+            else:
+                print("Order with ID {} not found.".format(order_id))
 
     except Error as e:
         print("Error fetching order status:", e)
-    finally:
-        cursor.close()
+
 
 
 def view_cart(cursor,cart_id):
@@ -146,12 +152,13 @@ def view_cart(cursor,cart_id):
                                     print("Brand:", product[3])
                                     print("Price:", product[4])
                                     print("------------------------------")
+                                cursor.execute("UPDATE Cart SET total_value = (SELECT SUM(p.price) FROM Contains_Products cp JOIN Product p ON cp.product_id = p.product_id WHERE cp.cart_id = Cart.cart_id) WHERE cart_id = %s;", (cart_id,))                                
                                 cursor.execute("Select total_value, final_amount from Cart where cart_id=%s",(cart_id,))
                                 results=cursor.fetchone()
                                 print("Total value of cart before applying coupon is: ",results[0])
                                 print("Total value of cart after applying coupon is: ",results[1])
                             else:
-                                print("No products found in the cart.")     
+                                print("No products found in the cart.")                            
 
 
 def remove_product_from_cart(conn, cart_id, pname):
@@ -182,11 +189,15 @@ def remove_product_from_cart(conn, cart_id, pname):
             WHERE cart_id = %s;
             """
             cursor.execute(update_query, (cart_id, cart_id, cart_id))
-
+            
             # Check if there is an applied offer and if the coupon is still applicable
             cursor.execute("SELECT offer_id, total_value FROM Cart WHERE cart_id = %s", (cart_id,))
             offer_id, total_value = cursor.fetchone()
-
+            print(total_value)
+            if total_value==None:
+                cursor.execute("UPDATE Cart SET final_amount = 0 and offer_id=0 WHERE cart_id = %s", (cart_id,))
+                print("Product removed from cart")
+                return 
             if offer_id:
                 cursor.execute("""
                 SELECT minimum_order_value, maximum_discount, percentage_discount
@@ -223,8 +234,6 @@ def remove_product_from_cart(conn, cart_id, pname):
         print("Error removing product from cart:", e)
 
 
-
-
 def add_delivery_boy(first_name, last_name, mobile_number, email_id, rating, salary, ofc_id, admin_id,orders_delivered):
     conn = connect_to_database()
     cursor = conn.cursor()
@@ -240,15 +249,15 @@ def add_delivery_boy(first_name, last_name, mobile_number, email_id, rating, sal
     print("Delivery boy added successfully.")
 
 # Function to add a worker
-def add_worker(salary, email, mobile, first_name, last_name, admin_id,ofc_assign):
+def add_worker(salary, email, mobile, first_name, last_name, admin_id):
     conn = connect_to_database()
     cursor = conn.cursor()
     
     # Insert worker data into Worker table
     cursor.execute("""
-        INSERT INTO Worker (salary, email, mobile, first_name, last_name, admin_id,ofc_id)
-        VALUES (%s, %s, %s, %s, %s, %s, %s)
-    """, (salary, email, mobile, first_name, last_name, admin_id,ofc_assign))
+        INSERT INTO Worker (salary, email, mobile, first_name, last_name, admin_id)
+        VALUES (%s, %s, %s, %s, %s, %s)
+    """, (salary, email, mobile, first_name, last_name, admin_id))
     
     conn.commit()
     conn.close()
@@ -268,7 +277,6 @@ def add_special_offer(offer_code, maximum_discount, percentage_discount, minimum
     conn.commit()
     conn.close()
     print("Special offer added successfully.")
-
 
 # Function to remove a special offer
 def remove_special_offer(offer_id):
@@ -489,6 +497,93 @@ def add_item_to_cart(conn, cursor):
             return  # Exit the method after placing the order
         else:
             print("Invalid choice.")
+def checkout(conn, cart_id, address,payment_mode ):
+    try:
+        cursor = conn.cursor()
+        # Fetch product_ids from Contains_Products table for the given cart_id
+        cursor.execute("SELECT product_id FROM Contains_Products WHERE cart_id = %s", (cart_id,))
+        product_ids = cursor.fetchall()
+        
+        pids=()
+        if not product_ids:
+            print("No products found in the cart.")
+            return
+        
+        for i in product_ids:
+            pids=pids+(i[0],)
+            data=[]
+        for i in pids:
+            cursor.execute("Select ofc_id from Stores where product_id=%s",(i,))
+            data.append(cursor.fetchall())
+
+        cursor.execute("SELECT count(*) from Order_Fulfillment_Centre")
+        count=cursor.fetchone()[0]
+        
+        ofc_count=[0 for i in range(count)]
+        for i in data:
+            try:
+                for j in range(count):
+                    if i[j][0]==j+1:
+                        ofc_count[j]+=1
+            except:
+                pass
+        fin_ofcs=[]
+        y=1
+        for x in ofc_count:
+            if x==len(pids):
+                fin_ofcs.append(y)
+                y+=1
+        if len(fin_ofcs)==0:
+            print('Products are not available in any Order Fulfillment Centre')
+            return
+        ofc_selected=random.choice(fin_ofcs)
+        
+        # Find delivery boys associated with the OFCs and select one with the least amount of orders delivered
+        selected_delivery_boy_id = None
+        min_orders_delivered = float('inf')
+
+        
+        cursor.execute("SELECT delivery_boy_id, orders_delivered FROM Delivery_Boy WHERE ofc_id = %s ORDER BY orders_delivered ASC", (ofc_selected,))
+        delivery_boy_id, orders_delivered = cursor.fetchone()
+
+        if orders_delivered < min_orders_delivered:
+            selected_delivery_boy_id = delivery_boy_id
+            min_orders_delivered = orders_delivered
+
+        if selected_delivery_boy_id is None:
+            print("No delivery boys available.")
+            return
+
+        # Insert an entry into the Order_ table
+        cursor.execute("SELECT COUNT(*) FROM Order_")
+        order_id = cursor.fetchone()[0] + 1
+        cursor.execute("SELECT final_amount from Cart where cart_id=%s",(cart_id,))
+        amount=cursor.fetchone()[0]
+        current_time = datetime.datetime.now().strftime('%H:%M')
+
+        cursor.execute("INSERT INTO Order_ (order_id, order_time, quantity, shipping_address, payment_mode, order_date, amount, cart_id, ofc_id, delivery_boy_id) VALUES (%s, %s, %s, %s, %s, CURDATE(), %s, %s, %s, %s)", 
+                            (order_id, current_time, len(pids), address, payment_mode, amount, cart_id, ofc_selected, selected_delivery_boy_id))        
+        # Delete products from Product and Stores table for the selected ofc_id
+        for product_id in pids:
+            cursor.execute("DELETE FROM Product WHERE product_id = %s", (product_id,))
+            cursor.execute("DELETE FROM Stores WHERE product_id = %s AND ofc_id = %s", (product_id, ofc_selected))
+
+        for i in pids:
+            # Delete products from Contains_Products table for the specific ofc_id
+            cursor.execute("DELETE FROM Contains_Products WHERE cart_id = %s AND product_id= %s", (cart_id, i))
+
+        # Update final_amount, total_value, and product_count of the cart to 0
+        cursor.execute("UPDATE Cart SET final_amount = 0, total_value = 0, product_count = 0 WHERE cart_id = %s", (cart_id,))      
+
+        print("Order placed successfully. Order ID:", order_id)
+        conn.commit()
+
+    except Error as e:
+        print("Error during checkout:", e)
+        conn.rollback()
+
+    finally:
+        cursor.close()
 
 def add_item(conn, cursor, cart_items):
     item_name = input("Enter item name: ").strip()
@@ -670,12 +765,12 @@ def change_product_cost(seller_id, product_id, new_price):
 
     try:
         # Check if the product belongs to the seller
-        cursor.execute("SELECT seller_id FROM Product WHERE product_id = %s", (product_id,))
+        cursor.execute("SELECT seller_id FROM Products WHERE product_id = %s", (product_id,))
         result = cursor.fetchone()
 
         if result and result[0] == seller_id:
             # Update the price of the product
-            cursor.execute("UPDATE Product SET price = %s WHERE product_id = %s", (new_price, product_id))
+            cursor.execute("UPDATE Products SET price = %s WHERE product_id = %s", (new_price, product_id))
             conn.commit()
             print("Product price updated successfully.")
         else:
@@ -692,12 +787,12 @@ def discontinue_product(seller_id, product_id):
 
     try:
         # Check if the product belongs to the seller
-        cursor.execute("SELECT seller_id FROM Product WHERE product_id = %s", (product_id,))
+        cursor.execute("SELECT seller_id FROM Products WHERE product_id = %s", (product_id,))
         result = cursor.fetchone()
 
         if result and result[0] == seller_id:
             # Delete the product from the database
-            cursor.execute("DELETE FROM Product WHERE product_id = %s", (product_id,))
+            cursor.execute("DELETE FROM Products WHERE product_id = %s", (product_id,))
             conn.commit()
             print("Product discontinued successfully.")
         else:
@@ -809,7 +904,6 @@ def main():
                     if customer_id:
                         cursor.execute("Select offer_id from Cart where Customer_id=%s",(customer_id,))
                         print(cursor.fetchone()[0])
-
                         q="select cart_id from Cart where customer_id= %s"
                         cursor.execute(q,(customer_id,))
                         cart_id=cursor.fetchone()
@@ -847,20 +941,20 @@ def main():
                                 view_all_special_offers(cursor)
                                 cursor.execute("select offer_id from Cart where cart_id=%s",(cart_id[0],))
                                 offer_id=cursor.fetchone()[0]
-                                print(offer_id)
                                 offer_code=input("Enter Offer Code You Want To Apply: ")
                                 apply_special_offer(conn, customer_id, cart_id[0], offer_code)  # Pass customer_id and cart_id
                             elif inner_choice=='4':
-                                cursor.execute("SELECT O.order_id FROM Order_ O JOIN Cart C ON O.cart_id = C.cart_id WHERE C.customer_id = %s",(customer_id,))
-                                view_order_status(conn,cursor.fetchone()[0])
+                                view_order_status(conn,customer_id)
                             elif inner_choice=='5':
                                 view_cart(cursor,cart_id[0])
                             elif inner_choice=='6':
                                 view_cart(cursor, cart_id[0])
                                 pname=input("Enter product name to remove: ")
                                 remove_product_from_cart(conn,cart_id[0],pname)
-                           # elif inner_choice=='7':
-                                
+                            elif inner_choice=='7':
+                                address=input("Enter Address: ")
+                                payment_mode=input("Enter Payment Mode: ")
+                                checkout(conn,cart_id[0],address,payment_mode)    
                             elif inner_choice == '10':
                                 print("Exiting...")
                                 break
