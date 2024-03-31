@@ -255,15 +255,15 @@ def add_delivery_boy(first_name, last_name, mobile_number, email_id, rating, sal
     print("Delivery boy added successfully.")
 
 # Function to add a worker
-def add_worker(salary, email, mobile, first_name, last_name, admin_id):
+def add_worker(salary, email, mobile, first_name, last_name, admin_id,ofc_assign):
     conn = connect_to_database()
     cursor = conn.cursor()
     
     # Insert worker data into Worker table
     cursor.execute("""
-        INSERT INTO Worker (salary, email, mobile, first_name, last_name, admin_id)
-        VALUES (%s, %s, %s, %s, %s, %s)
-    """, (salary, email, mobile, first_name, last_name, admin_id))
+        INSERT INTO Worker (salary, email, mobile, first_name, last_name, admin_id,ofc_id)
+        VALUES (%s, %s, %s, %s, %s, %s, %s)
+    """, (salary, email, mobile, first_name, last_name, admin_id,ofc_assign))
     
     conn.commit()
     conn.close()
@@ -768,12 +768,12 @@ def change_product_cost(seller_id, product_id, new_price):
 
     try:
         # Check if the product belongs to the seller
-        cursor.execute("SELECT seller_id FROM Products WHERE product_id = %s", (product_id,))
+        cursor.execute("SELECT seller_id FROM Product WHERE product_id = %s", (product_id,))
         result = cursor.fetchone()
 
         if result and result[0] == seller_id:
             # Update the price of the product
-            cursor.execute("UPDATE Products SET price = %s WHERE product_id = %s", (new_price, product_id))
+            cursor.execute("UPDATE Product SET price = %s WHERE product_id = %s", (new_price, product_id))
             conn.commit()
             print("Product price updated successfully.")
         else:
@@ -790,12 +790,12 @@ def discontinue_product(seller_id, product_id):
 
     try:
         # Check if the product belongs to the seller
-        cursor.execute("SELECT seller_id FROM Products WHERE product_id = %s", (product_id,))
+        cursor.execute("SELECT seller_id FROM Product WHERE product_id = %s", (product_id,))
         result = cursor.fetchone()
 
         if result and result[0] == seller_id:
             # Delete the product from the database
-            cursor.execute("DELETE FROM Products WHERE product_id = %s", (product_id,))
+            cursor.execute("DELETE FROM Product WHERE product_id = %s", (product_id,))
             conn.commit()
             print("Product discontinued successfully.")
         else:
