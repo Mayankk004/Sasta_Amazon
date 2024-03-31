@@ -195,7 +195,7 @@ def remove_product_from_cart(conn, cart_id, pname):
             offer_id, total_value = cursor.fetchone()
             print(total_value)
             if total_value==None:
-                cursor.execute("UPDATE Cart SET final_amount = 0 and offer_id=0 WHERE cart_id = %s", (cart_id,))
+                cursor.execute("UPDATE Cart SET final_amount = 1 and offer_id=0 WHERE cart_id = %s", (cart_id,))
                 print("Product removed from cart")
                 return 
             if offer_id:
@@ -221,7 +221,7 @@ def remove_product_from_cart(conn, cart_id, pname):
                     cursor.execute("UPDATE Cart SET final_amount = %s WHERE cart_id = %s", (final_amount, cart_id))
                 else:
                     # Coupon is no longer applicable due to minimum order value not being met
-                    cursor.execute("UPDATE Cart SET offer_id = 0 WHERE cart_id = %s", (cart_id,))
+                    cursor.execute("UPDATE Cart SET offer_id = 1 WHERE cart_id = %s", (cart_id,))
                     print("Coupon is no longer applicable due to minimum order value not being met.")
 
             print("Product removed from cart")
