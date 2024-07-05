@@ -1,0 +1,56 @@
+#For admin:
+Logging in/Signing up as admin
+  1.	Enter as admin
+After logging in:
+  1.	Add a delivery boy
+    a.	Enter the details of the delivery boy
+  2.	Add worker
+    a.	Enter details of the worker
+  3.	Add/remove special offers
+    a.	Use details like max discount and minimum order value
+  4.	Add/ remove seller
+    a.	Enter details of new seller and also using details delete a seller
+  5.	View all orders
+    a.	A prompt which allows the admin to view orders
+
+#For customers:
+Registering as a customer:
+  1.	Enter the details to register a new customer with the database.
+Logging as a customer:
+  1.	Login using the user id and password registered in the db.
+  2.	Add/remove product to cart
+    a.	Enter the name of the product to be added
+  3.	View all products or group by using category
+    a.	Choose between viewing all products or viewing them category-wise
+  4.	Apply special offers
+    a.	Allows the customers to apply their special offers
+  5.	View order status
+    a.	Customers can view what orders they have placed till date.
+  6.	View Cart
+    a.	Allows the customers to view all the products they have added to their cart
+  7.	Remove product from cart
+    a.   Allows customer to remove any product from their cart.  
+  8.	Checkout
+    a.	Allows to complete the order by confirming the products in the cart
+
+#For sellers:
+Logging as seller:
+  Log in using user id and password which is registered within the database
+After logging:
+  1.	Sell products
+    a.	Seller can add products by adding their details
+  2.	Change product cost
+    a.	Sellers can change the cost of a product using the product id
+  3.	Discontinue selling products
+    a.	Sellers can choose to discontinue selling a product using the product id 
+
+##Assumptions:
+1.	Only a customer can add product feedback by giving review and rating to the products.
+2.	Offers are made according to the minimum price. We have a percentage discount and Maximum discount.
+3.	One cart can be associated with many orders but one order is associated with only one cart.
+4.	Customers cannot view the product directly they have to either login as a customer or register as a customer first.
+5.	Their can be multiple admins and each one of them can add or delete different products, categories and sellers.
+6.	Admin can view the order details of every customer but customer can only view the details of his order.
+7.	Each product will belong to some unique category and there would be some categories where they may not be any products.
+
+
